@@ -1,38 +1,43 @@
+document.getElementById('registrationForm').addEventListener('submit', function (event) {
+    let isValid = true;
+    const name = document.getElementById('full_name').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone_number').value.trim();
+    const password = document.getElementById('password').value;
+    
 
-        function validateForm() {
-            var fullName = document.getElementById('full_name').value;
-            var email = document.getElementById('email').value;
-            var username = document.getElementById('username').value;
-            var password = document.getElementById('password').value;
-            var phoneNumber = document.getElementById('phone_number').value;
+    // Full Name: Only letters and spaces
+    if (!/^[A-Za-z\s]+$/.test(name)) {
+        isValid = false;
+        alert("Full Name can only contain letters and spaces.");
+    }
 
-            if (fullName.trim() === "") {
-                alert("Full Name is required.");
-                return false;
-            }
+    // Username: Alphanumeric and 4-20 characters
+    if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
+        isValid = false;
+        alert("Username must be 4-20 alphanumeric characters.");
+    }
 
-            var emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
-            if (!emailRegex.test(email)) {
-                alert("Invalid email format.");
-                return false;
-            }
+    // Email: Valid format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        isValid = false;
+        alert("Enter a valid email address.");
+    }
 
-            var usernameRegex = /^[a-zA-Z0-9]*$/;
-            if (!usernameRegex.test(username)) {
-                alert("Username can only contain letters and numbers.");
-                return false;
-            }
+    // Phone Number: Digits only (10-15 digits)
+    if (!/^\d{10,15}$/.test(phone)) {
+        isValid = false;
+        alert("Phone number must be 10-15 digits.");
+    }
 
-            if (password.length < 8) {
-                alert("Password must be at least 8 characters long.");
-                return false;
-            }
+    // Password: Minimum 8 characters, including letters and numbers
+    if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
+        isValid = false;
+        alert("Password must be at least 8 characters, with letters and numbers.");
+    }
 
-            var phoneRegex = /^\d{11}$/;
-            if (!phoneRegex.test(phoneNumber)) {
-                alert("Phone number must be 10 digits long.");
-                return false;
-            }
-
-            return true; 
-        }
+    if (!isValid) {
+        event.preventDefault(); // Stop form submission if validation fails
+    }
+});

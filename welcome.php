@@ -12,8 +12,12 @@ if (isset($_COOKIE['auth_token'])) {
 
         $decoded = JWT::decode($jwt, new Key($secret_key, 'HS256'));
 
-        $email = $decoded->email;
-        $userId = $decoded->id;
+
+        if(isset($_SESSION['user_id']) &&  $_SESSION['email'] === $decoded->email){
+
+            $email = $_SESSION['email'];
+            $userId = $_SESSION['user_id'];
+        
 
         echo "
             <!DOCTYPE html>
@@ -43,7 +47,14 @@ if (isset($_COOKIE['auth_token'])) {
 
             </body>
             </html>";
-        exit();
+        exit();}
+        else{
+            // Invalid session or token, prompt for login
+            echo "Invalid session. Please log in again.";
+            setcookie("auth_token", "", time() - 3600, "/", "", true, true); // Clear the expired cookie
+            header("Location: login.php");  // Redirect to login page
+            exit();
+        }
     } catch (Exception $e) {
 
         echo "Invalid session. Please log in again.";
