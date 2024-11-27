@@ -1,72 +1,3 @@
-<?php
-include('db.php');
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $message = ""; 
-    
-    // Check if the form fields are empty
-    if (empty($_POST['full_name']) || empty($_POST['email']) || empty($_POST['username']) || empty($_POST['phone_number']) || empty($_POST['password'])) {
-        $message = "Please fill in all the fields.";
-    } else {
-        // Sanitize input
-        $full_name = htmlspecialchars($_POST['full_name']);
-        $email = htmlspecialchars($_POST['email']);
-        $username = htmlspecialchars($_POST['username']);
-        $phone_number = htmlspecialchars($_POST['phone_number']);
-        $password = htmlspecialchars($_POST['password']);
-        $hashed_password = password_hash($password, PASSWORD_BCRYPT);
-
-        // Backend validation
-        if (!preg_match("/^[a-zA-Z\s]+$/", $full_name)) {
-            $message = "Full Name can only contain letters and spaces.";
-        }
-
-        if (!preg_match("/^[a-zA-Z0-9]{4,20}$/", $username)) {
-            $message = "Username must be 4-20 alphanumeric characters.";
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $message = "Invalid email format.";
-        }
-
-        if (!preg_match("/^\d{10,15}$/", $phone_number)) {
-            $message = "Phone number must be 10-15 digits.";
-        }
-
-        if (!preg_match("/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/", $password)) {
-            $message = "Password must be at least 8 characters, with letters and numbers.";
-        }
-
-        if (empty($message)) {  
-            $check_email_sql = "SELECT * FROM users WHERE email = ?";
-            $stmt = $conn->prepare($check_email_sql);
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows > 0) {
-                $message = "This email is already registered. Please use a different email.";
-            } else {
-                // Insert into the database
-                $insert_sql = "INSERT INTO users (email, password, username, full_name, phone_number) VALUES (?, ?, ?, ?, ?)";
-                $stmt = $conn->prepare($insert_sql);
-                $stmt->bind_param("sssss", $email, $hashed_password, $username, $full_name, $phone_number);
-
-                if ($stmt->execute()) {
-                    $message = "Registration successful!";
-                } else {
-                    $message = "Error: " . $stmt->error;
-                }
-            }
-
-            $stmt->close();
-        }
-    }
-}
-
-$conn->close();
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,6 +5,14 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .image-preview {
+            max-width: 100px;
+            max-height: 100px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -81,11 +20,13 @@ $conn->close();
         <div class="card shadow-sm p-4" style="width: 100%; max-width: 500px;">
             <h2 class="text-center mb-4">Register</h2>
             <?php
-            if (!empty($message)) {
-                echo '<div class="alert alert-' . (strpos($message, 'successful') !== false ? 'success' : 'danger') . ' mt-3">' . $message . '</div>';
+            if (isset($_GET['message'])){
+                $message = htmlspecialchars($_GET['message']);
+                $alertClass = strpos($message, 'successful') !== false ? 'success' : 'danger';
+                echo '<div class="alert alert-' . $alertClass . ' mt-3">' . $message . '</div>';
             }
             ?>
-            <form method="POST" id="registrationForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>">
+            <form method="POST" id="registrationForm" action="registration_process.php" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="full_name">Full Name:</label>
                     <input type="text" class="form-control" id="full_name" name="full_name" required>
@@ -111,12 +52,24 @@ $conn->close();
                     <input type="password" class="form-control" id="password" name="password" required>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block">Register</button>
-                <div class="mt-3">Already have an account? <a href='login.php' class=''>Login</a></div>
+                <!-- Image Upload Field -->
+                <div class="form-group">
+                    <label for="image">Profile Image:</label>
+                    <div class="d-flex">
+                        <input type="file" class="form-control" id="image" name="image" onchange="previewImage(event)">
+                    </div>
+                    <img id="imagePreview" class="image-preview" src="#" alt="Image Preview" style="display: none;">
+                </div>
+
+                <!-- Address Field -->
+                <div class="form-group">
+                    <label for="address">Address:</label>
+                    <textarea class="form-control" id="address" name="address" required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-block"  style="background-color: #024224; color:white;">Register</button>
+                <div class="mt-3">Already have an account? <a href='login.php' class='' style="color: green;">Login</a></div>
             </form>
-
-            
-
         </div>
     </div>
 
@@ -125,5 +78,69 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="script.js"></script>
+
+    <!-- Image Preview Script -->
+    <script>
+    function previewImage(event) {
+        var file = event.target.files[0];
+        var reader = new FileReader();
+
+        reader.onload = function() {
+            var imagePreview = document.getElementById("imagePreview");
+            imagePreview.src = reader.result;
+            imagePreview.style.display = "block";
+        }
+
+        if (file) {
+            reader.readAsDataURL(file);
+        }
+    }
+
+
+    document.getElementById('registrationForm').addEventListener('submit', function (event) {
+    let isValid = true;
+    const name = document.getElementById('full_name').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phone = document.getElementById('phone_number').value.trim();
+    const password = document.getElementById('password').value;
+    
+
+    // Full Name: Only letters and spaces
+    if (!/^[A-Za-z\s]+$/.test(name)) {
+        isValid = false;
+        alert("Full Name can only contain letters and spaces.");
+    }
+
+    // Username: Alphanumeric and 4-20 characters
+    if (!/^[a-zA-Z0-9]{4,20}$/.test(username)) {
+        isValid = false;
+        alert("Username must be 4-20 alphanumeric characters.");
+    }
+
+    // Email: Valid format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        isValid = false;
+        alert("Enter a valid email address.");
+    }
+
+    // Phone Number: Digits only (10-15 digits)
+    if (!/^\d{10,15}$/.test(phone)) {
+        isValid = false;
+        alert("Phone number must be 10-15 digits.");
+    }
+
+    // Password: Minimum 8 characters, including letters and numbers
+    if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(password)) {
+        isValid = false;
+        alert("Password must be at least 8 characters, with letters and numbers.");
+    }
+
+    if (!isValid) {
+        event.preventDefault(); // Stop form submission if validation fails
+    }
+});
+
+    </script>
 </body>
 </html>
